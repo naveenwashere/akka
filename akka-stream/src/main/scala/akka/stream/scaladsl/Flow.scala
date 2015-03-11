@@ -200,7 +200,7 @@ final class Flow[-In, +Out, +Mat](private[stream] override val module: Module)
    * The `combine` function is used to compose the materialized values of this flow and that
    * [[BidiFlow]] into the materialized value of the resulting [[Flow]].
    */
-  def joinMat[I2, O2, Mat2, M](bidi: BidiFlow[Out, O2, I2, In, Mat2])(combine: (Mat, Mat2) => M): Flow[I2, O2, M] = {
+  def joinMat[I2, O2, Mat2, M](bidi: BidiFlow[Out, O2, I2, In, Mat2])(combine: (Mat, Mat2) ⇒ M): Flow[I2, O2, M] = {
     val copy = bidi.module.carbonCopy
     val ins = copy.shape.inlets
     val outs = copy.shape.outlets
@@ -299,7 +299,7 @@ object Flow extends FlowApply {
   def apply[T]: Flow[T, T, Unit] = new Flow[Any, Any, Any](Stages.Identity()).asInstanceOf[Flow[T, T, Unit]]
 
   /**
-   * A graph with the shape of a source logically is a source, this method makes
+   * A graph with the shape of a flow logically is a flow, this method makes
    * it so also in type.
    */
   def wrap[I, O, M](g: Graph[FlowShape[I, O], M]): Flow[I, O, M] = new Flow(g.module)

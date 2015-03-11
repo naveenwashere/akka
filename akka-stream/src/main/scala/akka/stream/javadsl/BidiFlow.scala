@@ -1,15 +1,29 @@
 /**
  * Copyright (C) 2015 Typesafe Inc. <http://www.typesafe.com>
  */
-package akka.stream.scaladsl
+package akka.stream.javadsl
 
+import akka.stream.scaladsl
 import akka.stream.Graph
 import akka.stream.BidiShape
-import akka.stream.impl.StreamLayout.Module
-import akka.stream.FlowShape
 
-final class BidiFlow[-I1, +O1, -I2, +O2, +Mat](private[stream] override val module: Module) extends Graph[BidiShape[I1, O1, I2, O2], Mat] {
-  override val shape = module.shape.asInstanceOf[BidiShape[I1, O1, I2, O2]]
+object BidiFlow {
+
+  val factory: BidiFlowCreate = new BidiFlowCreate {}
+
+  /**
+   * A graph with the shape of a flow logically is a flow, this method makes
+   * it so also in type.
+   */
+  def wrap[I1, O1, I2, O2, M](g: Graph[BidiShape[I1, O1, I2, O2], M]): BidiFlow[I1, O1, I2, O2, M] = new BidiFlow(scaladsl.BidiFlow.wrap(g))
+
+}
+
+class BidiFlow[-I1, +O1, -I2, +O2, +Mat](delegate: scaladsl.BidiFlow[I1, O1, I2, O2, Mat]) extends Graph[BidiShape[I1, O1, I2, O2], Mat] {
+  private[stream] override def module = delegate.module
+  override def shape = delegate.shape
+
+  def asScala: scaladsl.BidiFlow[I1, O1, I2, O2, Mat] = delegate
 
   /**
    * Add the given BidiFlow as the next step in a bidirectional transformation
@@ -30,7 +44,8 @@ final class BidiFlow[-I1, +O1, -I2, +O2, +Mat](private[stream] override val modu
    * value of the current flow (ignoring the other BidiFlow’s value), use
    * [[BidiFlow#atopMat atopMat]] if a different strategy is needed.
    */
-  def atop[OO1, II2, Mat2](bidi: BidiFlow[O1, OO1, II2, I2, Mat2]): BidiFlow[I1, OO1, II2, O2, Mat] = atopMat(bidi)(Keep.left)
+  def atop[OO1, II2, Mat2](bidi: BidiFlow[O1, OO1, II2, I2, Mat2]): BidiFlow[I1, OO1, II2, O2, Mat] =
+    new BidiFlow(delegate.atop(bidi.asScala))
 
   /**
    * Add the given BidiFlow as the next step in a bidirectional transformation
@@ -50,16 +65,8 @@ final class BidiFlow[-I1, +O1, -I2, +O2, +Mat](private[stream] override val modu
    * The `combine` function is used to compose the materialized values of this flow and that
    * flow into the materialized value of the resulting BidiFlow.
    */
-  def atopMat[OO1, II2, Mat2, M](bidi: BidiFlow[O1, OO1, II2, I2, Mat2])(combine: (Mat, Mat2) ⇒ M): BidiFlow[I1, OO1, II2, O2, M] = {
-    val copy = bidi.module.carbonCopy
-    val ins = copy.shape.inlets
-    val outs = copy.shape.outlets
-    new BidiFlow(module
-      .grow(copy, combine)
-      .connect(shape.out1, ins(0))
-      .connect(outs(1), shape.in2)
-      .replaceShape(BidiShape(shape.in1, outs(0), ins(1), shape.out2)))
-  }
+  def atop[OO1, II2, Mat2, M](bidi: BidiFlow[O1, OO1, II2, I2, Mat2], combine: japi.Function2[Mat, Mat2, M]): BidiFlow[I1, OO1, II2, O2, M] =
+    new BidiFlow(delegate.atopMat(bidi.asScala)(combinerToScala(combine)))
 
   /**
    * Add the given Flow as the final step in a bidirectional transformation
@@ -80,7 +87,8 @@ final class BidiFlow[-I1, +O1, -I2, +O2, +Mat](private[stream] override val modu
    * value of the current flow (ignoring the other Flow’s value), use
    * [[BidiFlow#joinMat joinMat]] if a different strategy is needed.
    */
-  def join[Mat2](flow: Flow[O1, I2, Mat2]): Flow[I1, O2, Mat] = joinMat(flow)(Keep.left)
+  def join[Mat2](flow: Flow[O1, I2, Mat2]): Flow[I1, O2, Mat] =
+    new Flow(delegate.join(flow.asScala))
 
   /**
    * Add the given Flow as the final step in a bidirectional transformation
@@ -100,29 +108,11 @@ final class BidiFlow[-I1, +O1, -I2, +O2, +Mat](private[stream] override val modu
    * The `combine` function is used to compose the materialized values of this flow and that
    * flow into the materialized value of the resulting [[Flow]].
    */
-  def joinMat[Mat2, M](flow: Flow[O1, I2, Mat2])(combine: (Mat, Mat2) ⇒ M): Flow[I1, O2, M] = {
-    val copy = flow.module.carbonCopy
-    val in = copy.shape.inlets.head
-    val out = copy.shape.outlets.head
-    new Flow(module
-      .grow(copy, combine)
-      .connect(shape.out1, in)
-      .connect(out, shape.in2)
-      .replaceShape(FlowShape(shape.in1, shape.out2)))
-  }
+  def join[Mat2, M](flow: Flow[O1, I2, Mat2], combine: japi.Function2[Mat, Mat2, M]): Flow[I1, O2, M] =
+    new Flow(delegate.joinMat(flow.asScala)(combinerToScala(combine)))
 
   /**
    * Turn this BidiFlow around by 180 degrees, logically flipping it upside down in a protocol stack.
    */
-  def reversed: BidiFlow[I2, O2, I1, O1, Mat] = {
-    val ins = shape.inlets
-    val outs = shape.outlets
-    new BidiFlow(module.replaceShape(shape.copyFromPorts(ins.reverse, outs.reverse)))
-  }
-}
-
-object BidiFlow extends BidiFlowApply {
-
-  def wrap[I1, O1, I2, O2, Mat](graph: Graph[BidiShape[I1, O1, I2, O2], Mat]): BidiFlow[I1, O1, I2, O2, Mat] = new BidiFlow(graph.module)
-
+  def reversed: BidiFlow[I2, O2, I1, O1, Mat] = new BidiFlow(delegate.reversed)
 }
