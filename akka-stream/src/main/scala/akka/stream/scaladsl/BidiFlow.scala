@@ -125,4 +125,10 @@ object BidiFlow extends BidiFlowApply {
 
   def wrap[I1, O1, I2, O2, Mat](graph: Graph[BidiShape[I1, O1, I2, O2], Mat]): BidiFlow[I1, O1, I2, O2, Mat] = new BidiFlow(graph.module)
 
+  def apply[I1, O1, I2, O2](outbound: I1 ⇒ O1, inbound: I2 ⇒ O2): BidiFlow[I1, O1, I2, O2, Unit] =
+    BidiFlow() { b ⇒
+      val top = b.add(Flow[I1].map(outbound))
+      val bottom = b.add(Flow[I2].map(inbound))
+      BidiShape(top.inlet, top.outlet, bottom.inlet, bottom.outlet)
+    }
 }

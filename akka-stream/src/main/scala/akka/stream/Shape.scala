@@ -180,16 +180,24 @@ final case class SinkShape[-T](inlet: Inlet[T]) extends Shape {
   }
 }
 
+//#bidi-shape
 /**
  * A bidirectional flow of elements that consequently has two inputs and two
  * outputs, arranged like this:
  *
  * {{{
- * In1  => Out1
- * Out2 <= In2
+ *        +------+
+ *  In1 ~>|      |~> Out1
+ *        | bidi |
+ * Out2 <~|      |<~ In2
+ *        +------+
  * }}}
  */
-final case class BidiShape[-In1, +Out1, -In2, +Out2](in1: Inlet[In1], out1: Outlet[Out1], in2: Inlet[In2], out2: Outlet[Out2]) extends Shape {
+final case class BidiShape[-In1, +Out1, -In2, +Out2](in1: Inlet[In1],
+                                                     out1: Outlet[Out1],
+                                                     in2: Inlet[In2],
+                                                     out2: Outlet[Out2]) extends Shape {
+  //#implementation-details-elided
   override val inlets: immutable.Seq[Inlet[_]] = List(in1, in2)
   override val outlets: immutable.Seq[Outlet[_]] = List(out1, out2)
 
@@ -200,4 +208,11 @@ final case class BidiShape[-In1, +Out1, -In2, +Out2](in1: Inlet[In1], out1: Outl
     require(outlets.size == 2, s"proposed outlets [${outlets.mkString(", ")}] do not fit BidiShape")
     BidiShape(inlets(0), outlets(0), inlets(1), outlets(1))
   }
+  //#implementation-details-elided
+}
+//#bidi-shape
+
+object BidiShape {
+  def apply[I1, O1, I2, O2](top: FlowShape[I1, O1], bottom: FlowShape[I2, O2]): BidiShape[I1, O1, I2, O2] =
+    BidiShape(top.inlet, top.outlet, bottom.inlet, bottom.outlet)
 }
