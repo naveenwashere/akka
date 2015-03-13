@@ -201,6 +201,11 @@ final case class BidiShape[-In1, +Out1, -In2, +Out2](in1: Inlet[In1],
   override val inlets: immutable.Seq[Inlet[_]] = List(in1, in2)
   override val outlets: immutable.Seq[Outlet[_]] = List(out1, out2)
 
+  /**
+   * Java API for creating from a pair of unidirectional flows.
+   */
+  def this(top: FlowShape[In1, Out1], bottom: FlowShape[In2, Out2]) = this(top.inlet, top.outlet, bottom.inlet, bottom.outlet)
+
   override def deepCopy(): BidiShape[In1, Out1, In2, Out2] =
     BidiShape(new Inlet(in1.toString), new Outlet(out1.toString), new Inlet(in2.toString), new Outlet(out2.toString))
   override def copyFromPorts(inlets: immutable.Seq[Inlet[_]], outlets: immutable.Seq[Outlet[_]]): Shape = {

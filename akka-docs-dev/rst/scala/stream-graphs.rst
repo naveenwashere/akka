@@ -235,7 +235,7 @@ turns an object into a sequence of bytes.
 The other stage that we talked about is a little more involved since reversing
 a framing protocol means that any received chunk of bytes may correspond to
 zero or more messages. This is best implemented using a :class:`PushPullStage`
-as discussed in :ref:`stream-using-push-pull-stage-scala`.
+(see also :ref:`stream-using-push-pull-stage-scala`).
 
 .. includecode:: code/docs/stream/BidiFlowDocSpec.scala#framing
 

@@ -17,6 +17,13 @@ object BidiFlow {
    */
   def wrap[I1, O1, I2, O2, M](g: Graph[BidiShape[I1, O1, I2, O2], M]): BidiFlow[I1, O1, I2, O2, M] = new BidiFlow(scaladsl.BidiFlow.wrap(g))
 
+  /**
+   * Create a BidiFlow where the top and bottom flows are just one simple mapping
+   * stage each, expressed by the two functions.
+   */
+  def fromFunctions[I1, O1, I2, O2](top: japi.Function[I1, O1], bottom: japi.Function[I2, O2]): BidiFlow[I1, O1, I2, O2, Unit] =
+    new BidiFlow(scaladsl.BidiFlow(top.apply _, bottom.apply _))
+
 }
 
 class BidiFlow[-I1, +O1, -I2, +O2, +Mat](delegate: scaladsl.BidiFlow[I1, O1, I2, O2, Mat]) extends Graph[BidiShape[I1, O1, I2, O2], Mat] {

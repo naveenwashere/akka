@@ -97,7 +97,7 @@ object BidiFlowDocSpec {
           // we have enough to emit at least one message, so do it
           val emit = stash.take(needed)
           stash = stash.drop(needed)
-          needed = 0
+          needed = -1
           ctx.push(emit)
         }
 

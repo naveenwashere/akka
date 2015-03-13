@@ -123,8 +123,16 @@ final class BidiFlow[-I1, +O1, -I2, +O2, +Mat](private[stream] override val modu
 
 object BidiFlow extends BidiFlowApply {
 
+  /**
+   * A graph with the shape of a flow logically is a flow, this method makes
+   * it so also in type.
+   */
   def wrap[I1, O1, I2, O2, Mat](graph: Graph[BidiShape[I1, O1, I2, O2], Mat]): BidiFlow[I1, O1, I2, O2, Mat] = new BidiFlow(graph.module)
 
+  /**
+   * Create a BidiFlow where the top and bottom flows are just one simple mapping
+   * stage each, expressed by the two functions.
+   */
   def apply[I1, O1, I2, O2](outbound: I1 ⇒ O1, inbound: I2 ⇒ O2): BidiFlow[I1, O1, I2, O2, Unit] =
     BidiFlow() { b ⇒
       val top = b.add(Flow[I1].map(outbound))
